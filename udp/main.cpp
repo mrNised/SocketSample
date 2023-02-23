@@ -4,7 +4,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 
-int main() {
+int main(int argc, char* argv[]) {
 #ifdef WINDOWS_PLATFORM
     //On Windows only you need to initialize the Socket Library in version 2.2
     WSAData wsa;
@@ -17,6 +17,7 @@ int main() {
     //Protocol : IPPROTO_UDP = UDP | IPPROTO_TCP = TCP  || 0 = auto
     SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 
+    //sockaddr_in represents a IPv4 address.
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(45'000);
@@ -38,6 +39,15 @@ int main() {
     // => On a client we don't give a shit and we send data
 
     int error = bind(s, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr));
+    if(error < 0)
+    {
+        error = WSAGetLastError();
+        std::cout << "There was an error" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    //A server must listen for incoming packets
+    error = listen(s, 255);
     if(error < 0)
     {
         error = WSAGetLastError();
