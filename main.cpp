@@ -4,10 +4,6 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 
-#ifdef __unix__
-using SOCKET = int;
-#endif
-
 int main() {
 #ifdef WINDOWS_PLATFORM
     //On Windows only you need to initialize the Socket Library in version 2.2
