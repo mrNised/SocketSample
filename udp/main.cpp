@@ -3,6 +3,7 @@
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <vector>
 
 int main(int argc, char* argv[]) {
 #ifdef WINDOWS_PLATFORM
@@ -54,6 +55,8 @@ int main(int argc, char* argv[]) {
     sockaddr_in clientAddr;
     int clientLength = sizeof(clientAddr);
 
+    std::vector<sockaddr_in> myClients;
+
     //recvfrom receive data from a client and returns the size of the data received
     int recvLength = recvfrom(s,
              buffer.data(),
@@ -69,6 +72,20 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    //Check if new client
+    bool newClient = false;
+    for(auto& addr : myClients)
+    {
+        if(addr.sin_addr.S_un.S_addr == clientAddr.sin_addr.S_un.S_addr) continue;
+        newClient = true;
+    }
+
+    if(newClient)
+    {
+        //Add new client
+        myClients.push_back(clientAddr);
+    }
+
     //We need to convert Client Addr to string for print
     std::array<char, 256> ip;
     //inet_ntop returns the string representation of clientAddr
@@ -82,18 +99,21 @@ int main(int argc, char* argv[]) {
     // to host order (little endian)
 
     //We send back the message to the client
-    int byteSent = sendto(s,
-           buffer.data(),
-           recvLength,
-           0,
-           reinterpret_cast<sockaddr*>(&clientAddr),
-           clientLength);
+    for(auto& client : myClients) {
+        int clientLen = sizeof(client);
+        int byteSent = sendto(s,
+                              buffer.data(),
+                              recvLength,
+                              0,
+                              reinterpret_cast<sockaddr *>(&client),
+                              clientLen);
 
-    if(byteSent < 0)
-    {
-        std::cout << "We failed to SEND TO" << std::endl;
-        closesocket(s);
-        return EXIT_FAILURE;
+        if(byteSent < 0)
+        {
+            std::cout << "We failed to SEND TO" << std::endl;
+            closesocket(s);
+            return EXIT_FAILURE;
+        }
     }
 
     //We finished our job so close everything

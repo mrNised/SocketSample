@@ -1,5 +1,6 @@
 #include <array>
 #include <iostream>
+#include <thread>
 
 #include <WinSock2.h>
 #include <ws2ipdef.h>
@@ -61,39 +62,53 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    //Now we receive the serve response
-    std::array<char, 65535> buffer;
-    sockaddr_in peerAddr;
-    int peerAddrLength = sizeof peerAddr;
-    //memset = Memory Set, we are setting all the memory of clientAddr at 0
-    memset(&peerAddr, 0, sizeof peerAddr);
+    bool stop = false;
+    std::thread receiveThread([&]{
+        //Now we receive the serve response
+        std::array<char, 65535> buffer;
+        sockaddr_in peerAddr;
+        int peerAddrLength = sizeof peerAddr;
+        //memset = Memory Set, we are setting all the memory of clientAddr at 0
+        memset(&peerAddr, 0, sizeof peerAddr);
 
-    //recvfrom receive data from a client and returns the size of the data received
-    int recvLength = recvfrom(s,
-                              buffer.data(),
-                              65535,
-                              0,
-                              reinterpret_cast<sockaddr*>(&peerAddr),
-                              &peerAddrLength);
+        while(!stop) {
+            //recvfrom receive data from a client and returns the size of the data received
+            int recvLength = recvfrom(s,
+                                      buffer.data(),
+                                      65535,
+                                      0,
+                                      reinterpret_cast<sockaddr *>(&peerAddr),
+                                      &peerAddrLength);
 
-    if(recvLength < 0)
-    {
-        int error = WSAGetLastError();
-        std::cout << "We failed to RECV FROM" << std::endl;
-        closesocket(s);
-        return EXIT_FAILURE;
+            if (recvLength < 0) {
+                int error = WSAGetLastError();
+                std::cout << "We failed to RECV FROM" << std::endl;
+                closesocket(s);
+                return EXIT_FAILURE;
+            }
+
+            //We need to convert Client Addr to string for print
+            std::array<char, 256> ip;
+            //inet_ntop returns the string representation of clientAddr
+            const char *ipClient = inet_ntop(AF_INET, &peerAddr.sin_addr, ip.data(), 256);
+            //We print everything
+            std::cout << "We received : " <<
+                      recvLength << " bytes from : "
+                      << ipClient << ":" << ntohs(peerAddr.sin_port) << std::endl;
+            std::string msg(buffer.data(), recvLength);
+            std::cout << "Message from server : {}" << msg << std::endl;
+        }
+    });
+
+    while(stop){
+        //Lire les messages depuis la console
+        //Envoyer le message au serveur
+
+        //Si le client tape DISCONNECT quitter le while, mettre le boolean stop à true et close la socket
+
+        //ATTENTION : en C++ un thread doit être join avant d'être détruit
+        //regarde les fonctions is_joinable() et join() avant de quitter la main
     }
-
-    //We need to convert Client Addr to string for print
-    std::array<char, 256> ip;
-    //inet_ntop returns the string representation of clientAddr
-    const char* ipClient = inet_ntop(AF_INET, &peerAddr.sin_addr, ip.data(), 256);
-    //We print everything
-    std::cout << "We received : " <<
-              recvLength << " bytes from : "
-              << ipClient << ":" << ntohs(peerAddr.sin_port) << std::endl;
-    std::string msg(buffer.data(), recvLength);
-    std::cout << "Message from server : {}" << msg << std::endl;
 
     //We finished our job so close everything
     closesocket(s);
