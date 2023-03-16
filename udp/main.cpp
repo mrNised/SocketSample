@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
     //sockaddr_in represents a IPv4 address.
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(45'000);
-    serverAddr.sin_addr.S_un.S_addr = INADDR_ANY;
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+    serverAddr.sin_port = htons(8888);
 
     // UINT 16 : 0A0B0C0D
     // Big Endian : 0A 0B 0C 0D
@@ -46,26 +46,13 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    //A server must listen for incoming packets
-    error = listen(s, 255);
-    if(error < 0)
-    {
-        error = WSAGetLastError();
-        std::cout << "There was an error" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    //We are bond so we can talk
-
     //Since we are a server we just receive data from someone
     //We need a buffer to receive data into
     std::array<char, 65535> buffer;
     //We need a Client Addr to save the address of the client that sent
     // data to us
     sockaddr_in clientAddr;
-    int clientLength = sizeof clientAddr;
-    //memset = Memory Set, we are setting all the memory of clientAddr at 0
-    memset(&clientAddr, 0, sizeof clientAddr);
+    int clientLength = sizeof(clientAddr);
 
     //recvfrom receive data from a client and returns the size of the data received
     int recvLength = recvfrom(s,

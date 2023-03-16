@@ -20,18 +20,31 @@ int main() {
     // AF : Address Family IPv4/IPv6 => AF_INET | AF_INET6
     //Type : STREAM => TCP | DGRAM => UDP
     //Protocol : IPPROTO_UDP = UDP | IPPROTO_TCP = TCP  || 0 = auto
-    SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
+    SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     //Since we are a client we just send data to someone
     //We need a buffer to receive data into
     const char* data_to_send = "Hello World!!";
     size_t data_length = strlen(data_to_send);
 
-    //Server is listening on 127.0.0.1:45000
+    //Server is listening on 127.0.0.1:8888
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(45'000);
-    serverAddr.sin_addr.S_un.S_addr = INADDR_LOOPBACK;
+    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr);
+    serverAddr.sin_port = htons(8888);
+
+    sockaddr_in iface;
+    iface.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &iface.sin_addr);
+    iface.sin_port = htons(444444);
+
+    int error = bind(s, reinterpret_cast<sockaddr*>(&iface), sizeof(iface));
+    if(error < 0)
+    {
+        error = WSAGetLastError();
+        std::cout << "There was an error" << std::endl;
+        return EXIT_FAILURE;
+    }
 
     //We send back the message to the client
     int byteSent = sendto(s,
