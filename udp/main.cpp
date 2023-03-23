@@ -57,62 +57,73 @@ int main(int argc, char* argv[]) {
 
     std::vector<sockaddr_in> myClients;
 
-    //recvfrom receive data from a client and returns the size of the data received
-    int recvLength = recvfrom(s,
-             buffer.data(),
-             65535,
-             0,
-             reinterpret_cast<sockaddr*>(&clientAddr),
-             &clientLength);
+    bool stop = false;
+    while(!stop){
+        //recvfrom receive data from a client and returns the size of the data received
+        int recvLength = recvfrom(s,
+                                  buffer.data(),
+                                  65535,
+                                  0,
+                                  reinterpret_cast<sockaddr*>(&clientAddr),
+                                  &clientLength);
 
-    if(recvLength < 0)
-    {
-        std::cout << "We failed to RECV FROM" << std::endl;
-        closesocket(s);
-        return EXIT_FAILURE;
-    }
-
-    //Check if new client
-    bool newClient = false;
-    for(auto& addr : myClients)
-    {
-        if(addr.sin_addr.S_un.S_addr == clientAddr.sin_addr.S_un.S_addr) continue;
-        newClient = true;
-    }
-
-    if(newClient)
-    {
-        //Add new client
-        myClients.push_back(clientAddr);
-    }
-
-    //We need to convert Client Addr to string for print
-    std::array<char, 256> ip;
-    //inet_ntop returns the string representation of clientAddr
-    const char* ipClient = inet_ntop(AF_INET, &clientAddr.sin_addr, ip.data(), 256);
-    //We print everything
-    std::cout << "We received : " <<
-        recvLength << " bytes from : "
-        << ipClient << ":" << ntohs(clientAddr.sin_port) << std::endl;
-
-    //ntohs : Network TO Host Short => Convert a short from Network Order (Big Endian)
-    // to host order (little endian)
-
-    //We send back the message to the client
-    for(auto& client : myClients) {
-        int clientLen = sizeof(client);
-        int byteSent = sendto(s,
-                              buffer.data(),
-                              recvLength,
-                              0,
-                              reinterpret_cast<sockaddr *>(&client),
-                              clientLen);
-
-        if(byteSent < 0)
+        if(recvLength < 0)
         {
-            std::cout << "We failed to SEND TO" << std::endl;
+            std::cout << "We failed to RECV FROM" << std::endl;
             closesocket(s);
             return EXIT_FAILURE;
+        }
+
+        //Check if new client
+        bool newClient = true;
+        for(auto& addr : myClients)
+        {
+            if(addr.sin_addr.S_un.S_addr == clientAddr.sin_addr.S_un.S_addr){
+                newClient = false;
+            }
+        }
+
+        if(newClient)
+        {
+            //Add new client
+            myClients.push_back(clientAddr);
+        }
+
+        //We need to convert Client Addr to string for print
+        std::array<char, 256> ip;
+        //inet_ntop returns the string representation of clientAddr
+        const char* ipClient = inet_ntop(AF_INET, &clientAddr.sin_addr, ip.data(), 256);
+        //We print everything
+        std::cout << "We received : " <<
+                  recvLength << " bytes from : "
+                  << ipClient << ":" << ntohs(clientAddr.sin_port) << std::endl;
+        std::string msg(buffer.data(), recvLength);
+        std::cout << "Message from client : " << msg << std::endl;
+
+        //ntohs : Network TO Host Short => Convert a short from Network Order (Big Endian)
+        // to host order (little endian)
+
+        //We send back the message to the client
+        for(auto& client : myClients) {
+            int clientLen = sizeof(client);
+            int byteSent = sendto(s,
+                                  buffer.data(),
+                                  recvLength,
+                                  0,
+                                  reinterpret_cast<sockaddr *>(&client),
+                                  clientLen);
+
+            if(byteSent < 0)
+            {
+                std::cout << "We failed to SEND TO" << std::endl;
+                closesocket(s);
+                return EXIT_FAILURE;
+            }
+        }
+        if(msg == "DISCONNECT"){
+            // Mettre le boolean stop à true et close la socket
+            stop = true;
+            std::cout << "Disconnecting ... " << std::endl;
         }
     }
 
