@@ -101,6 +101,9 @@ int main(int argc, char* argv[])
         {
             //We received a packet
 
+            std::string msgReceived(recvBuffer.data(), byteReceived);
+            std::cout << "Server : We received : " << msgReceived << std::endl;
+
             //We echo the packet back to the client
             //Like in recv instead of sendto (that we use in UDP) we use send
             //since TCP is connection-based and CLientSocket can only be used

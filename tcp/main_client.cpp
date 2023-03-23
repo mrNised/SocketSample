@@ -27,6 +27,8 @@ struct WinSockInitializer
 static WinSockInitializer __WIN_INIT__ {};
 #endif
 
+void SendMSG(const char* msg);
+
 int main(int argc, char* argv[])
 {
     //We will need a addrinfo to store the result of the DNS
@@ -100,18 +102,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    //We finished sending information so we can shutdown
-    //our part (the writing or sending part) of the socket
-    error = shutdown(s, SD_SEND);
-
-    if(error < 0)
-    {
-        error = WSAGetLastError();
-        std::cout << "There was an error" << std::endl;
-        closesocket(s);
-        return EXIT_FAILURE;
-    }
-
+    int nbMessageReceived = 0;
     std::array<char, 65535> recvBuffer{};
     int byteReceived = 0;
 
@@ -121,8 +112,39 @@ int main(int argc, char* argv[])
         if (byteReceived > 0)
         {
             //We received some data
+            nbMessageReceived++;
+
             std::string msgReceived(recvBuffer.data(), byteReceived);
             std::cout << "CLIENT : We received : " << msgReceived << std::endl;
+
+            if(nbMessageReceived < 5)
+            {
+                const char* msg = "Hello World!!! : ";
+                int byteSent = send(s, msg, strlen(msg), 0);
+
+                if(byteSent < 0)
+                {
+                    error = WSAGetLastError();
+                    std::cout << "There was an error" << std::endl;
+                    closesocket(s);
+                    return EXIT_FAILURE;
+                }
+            }
+            else
+            {
+                //We finished sending information so we can shutdown
+                //our part (the writing or sending part) of the socket
+                error = shutdown(s, SD_SEND);
+
+                if(error < 0)
+                {
+                    error = WSAGetLastError();
+                    std::cout << "There was an error" << std::endl;
+                    closesocket(s);
+                    return EXIT_FAILURE;
+                }
+
+            }
         }
         else if (byteReceived == 0)
         {
@@ -141,4 +163,17 @@ int main(int argc, char* argv[])
     closesocket(s);
 
     return EXIT_SUCCESS;
+}
+
+void SendMSG(SOCKET s, const char* msg)
+{
+    int byteSent = send(s, msg, strlen(msg), 0);
+
+    if(byteSent < 0)
+    {
+        int error = WSAGetLastError();
+        std::cout << "There was an error" << std::endl;
+        closesocket(s);
+        // return EXIT_FAILURE;-----------------------------------------------------
+    }
 }
